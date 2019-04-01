@@ -1,20 +1,38 @@
 <template>
   <div class="home">
-    <!-- <h1 class="header-title">{{ hometitle }}</h1> -->
-    <div class="grid">
+    <div class="header-title">
+      <img src="https://img.icons8.com/material-outlined/24/000000/circled-menu.png">
+    </div>
+    <div class="header-total-patterns">
+      total: <b>{{ this.permuted.length }}</b> patterns.
+    </div>
+    <div class="display-container">
+     <div class="grid canvas-wrapper">
+     <div  class="tag-list">
+        <div
+          id="text-bg"
+          v-for="(data, index) of outputDataBG"
+          :key="index"
+          v-html="data"
+        >
+        </div>
+      </div> 
+    </div>
+    <div class="grid render-text">
       <div  class="tag-list">
-        <!-- <Indicator/> -->
         <div
           v-for="(data, index) of outputData"
           :key="index"
           v-html="data"
         >
-         <!-- <div
-          v-html="outputData"
-        > -->
         </div>
       </div>
     </div>
+    </div>
+    <div class="display-char">
+      <div class="char">{{ this.targetChar }}</div>
+    </div>
+   
     <div class="centered">
       <div class="group">
         <input autofocus id="name" v-model="permuteData" type="text">
@@ -23,14 +41,15 @@
       </div>
       <div class="btn-group">
         <button class="generate-btn" @click="permuteGenerator">GENERATE</button>
-        <!-- <button class="generate-btn" @click="runPermuted">RUN</button> -->
       </div>
     </div>
+    <p class="credits"> by Karnpapon Boonput 2019 all rights reversed.</p>
   </div>
 </template>
 
 <script>
 import Indicator from "../components/indicator";
+import Header from "../components/Header";
 import { FETCH_LISTDATA } from "@/store/actions.type";
 import { mapGetters } from 'vuex'
 import permute from '../scripts/steinhaus-johnson-trotter'
@@ -52,10 +71,12 @@ export default {
       target: "",
       targetChar: "",
       synthA: "",
-      synthB: ""
+      synthB: "",
+      permutedTextBg: ""
     }
   },
   mounted() {
+    var reverb = new Tone.JCReverb(0.7).connect(Tone.Master);
     this.synthA = new Tone.Synth({
       oscillator: {
         type: 'fmsquare',
@@ -69,8 +90,7 @@ export default {
         sustain: 0.1,
         release: 0.1
       }
-    }).toMaster()
-
+    }).chain(reverb)
 
     this.synthB = new Tone.Synth({
       oscillator: {
@@ -82,7 +102,7 @@ export default {
         sustain: 0.4,
         release: 0.6
       }
-    }).toMaster()
+    }).chain(reverb)
   },
   components: {
     Indicator
@@ -94,34 +114,48 @@ export default {
     // ...mapGetters(['getListData', 'isLoading'])
     outputData: function(){
       return this.render
+    },
+    outputDataBG: function(){
+      return this.permutedTextBg
     }
   },
   watch: {
-    targetChar: function(){
-     switch( this.targetChar ) {
-       case 'ต':
-          this.synthA.triggerAttackRelease("C4", "8n");
-       break;
-       case 'ก':
-          this.synthB.triggerAttackRelease("F4", "8n");
-       break;
-       case 'ค':
-          this.synthB.triggerAttackRelease("A4", "8n");
-       break;
-       case 'ว':
-          this.synthA.triggerAttackRelease("G3", "8n");
-       break;
-       case 'ย':
-          this.synthB.triggerAttackRelease("B4", "8n");
-       break;
-     }
-    }
+   
   },
   methods: {
     getdata(){
       console.log("getListData", this.getListData)
     },
-    permutations(arr) {
+     trigger(){
+     switch( this.targetChar ) {
+       case 'ต':
+          this.synthA.envelope.attack = 0.05
+          this.synthA.envelope.release = 0.2
+          this.synthA.triggerAttackRelease("D4", "8n");
+       break;
+       case 'ก':
+          this.synthB.envelope.attack = 0.01
+          this.synthB.envelope.release = 0.6
+          this.synthB.triggerAttackRelease("C#4", "8n");
+       break;
+       case 'ค':
+          this.synthB.envelope.attack = 0.05
+          this.synthB.envelope.release = 0.6
+          this.synthB.triggerAttackRelease("F#4", "8n");
+       break;
+       case 'ว':
+          this.synthA.envelope.attack = 1
+          this.synthA.envelope.release = 1
+          this.synthA.triggerAttackRelease("E3", "8n");
+       break;
+       case 'ญ':
+          this.synthB.envelope.attack = 1
+          this.synthB.envelope.release = 1
+          this.synthB.triggerAttackRelease("B4", "8n");
+       break;
+     }
+    },
+    permutations(arr, highlight = false) {
       var generator = permute(arr);
       var next = arr;
       var result = [];
@@ -130,8 +164,12 @@ export default {
       let mc 
 
       while (next !== undefined) {
-        // mc = next.replace(this.target, `<span>${this.target}</span>`)
-        result.push(next);
+        if(highlight){
+          mc = next.replace(this.target, `<span id="text-bg-render">${this.target}</span>`)
+          result.push(mc);
+        } else {
+          result.push(next);
+        }
         next = generator();
       }
       return result;
@@ -145,6 +183,7 @@ export default {
     },
     permuteGenerator(){
       this.permuted = this.permutations(this.permuteData)  
+      this.permutedTextBg = this.permutations(this.permuteData, true)  
       this.increment()
     },
     increment(){
@@ -162,13 +201,9 @@ export default {
 
       this.render = this.permuted.slice(0)
       this.render[this.rowCount] = this.output
-      
+      this.trigger() 
       this.runPermuted()
     },
-    // play: function() {
-    //   Gibber.scale.root.seq( ['c4','eb4'], 2)
-    //   c = Mono('easyfx').note.seq( Rndi(0,12), [1/4,1/8,1/2,1,2].rnd( 1/8,4 ) )
-    // }
   }
 }
 </script>
@@ -190,8 +225,17 @@ export default {
   }
 
   .header-title{
-    width: fit-content;
-    padding: 20px 0;
+  }
+
+  .header-total-patterns{
+    position: absolute;
+    right: 0;
+    margin-right: 51px;
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    b{
+     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; 
+    }
   }
 
   .home-detail{
@@ -209,9 +253,16 @@ export default {
     width: 100%;
     column-count: 8;
     height: 410px;
+    padding-top: 20px;
     box-sizing: content-box;
+    transition: 200ms;
     /* grid-template-columns: repeat(2,1fr); */
     /* grid-gap: 1rem; */
+  }
+
+  .render-text{
+    position: relative;
+    z-index: 5;
   }
 
   .grid p{
@@ -225,32 +276,67 @@ export default {
     }
   }
 
+  .canvas-wrapper{
+    position: absolute;
+  }
+
+  #canvas{
+    width: 100%;
+  }
+
+  #text-bg{
+    color: $main-color;
+    box-shadow: inset 0px -0.5px black
+  }
+
+  .display-container{
+    width: 100%;
+    position: inherit;
+  }
+
+  .display-char{
+    font-size: 20rem;
+    position: absolute;
+    opacity: .5;
+    transition: 200ms;
+    z-index: 1;
+    .char{
+    }
+  }
+
   .tag-list{
     /deep/ span{
       transition: 200ms;
       color: rgba(white, 1);
-      /* border-bottom: 2px solid; */
-      /* &:after {
-        content: '';
-        position: absolute;
-        width: 10px;
-        height: 2px;
-        background: rgba(white, 1);
-        transform: translateX(-100%);
-        margin-top: 3px;
-      } */
+      border-bottom: 2px solid white;
+    } 
+    /deep/ span#text-bg-render{
+      transition: 200ms;
+      border-bottom: 2px solid black;
+      color: black;
+      font-weight: bolder;
     } 
    
   }
 
+  .credits{
+    font-family: 'Courier New', Courier, monospace;
+    position: absolute;
+    font-size: 12px;
+    margin-bottom: 20px;
+    bottom: 0px;
+  }
+
   .btn-group{
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     width: 120px;
+    padding-top: 30px;
   }
 
   .generate-btn{
     border: none;
+    outline: none;
     cursor: pointer;
     padding: 10px;
     background:rgba(white, 1);
@@ -267,10 +353,11 @@ export default {
   .centered {
     width: $width;
     height: $width/5;
-    margin: auto;
     top: 0; bottom: 0;
     left: 0; right: 0; 
     transition: 200ms;
+    justify-content: flex-end;
+    display: flex;
   }
 
   .group {
@@ -278,6 +365,9 @@ export default {
     height: $width/5;
     overflow: hidden;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-self: end;
   }
 
   label {
@@ -292,7 +382,7 @@ export default {
   input {
     display: block;
     width: 100%;
-    padding-top: $width/15;
+    margin-top: auto;
     border: none;
     border-radius: 0;
     color: white;
