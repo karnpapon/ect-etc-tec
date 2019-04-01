@@ -2,51 +2,69 @@
   <div class="home">
     <!-- <h1 class="header-title">{{ hometitle }}</h1> -->
     <div class="grid">
-      <div class="tag-list">
-        <p
-          v-for="(data, index) of permuted"
+      <div  class="tag-list">
+        <!-- <Indicator/> -->
+        <div
+          v-for="(data, index) of outputData"
           :key="index"
+          v-html="data"
         >
-        {{ data }}
-        </p>
+         <!-- <div
+          v-html="outputData"
+        > -->
+        </div>
       </div>
     </div>
     <div class="centered">
       <div class="group">
-        <input  id="name" v-model="permuteData" type="text">
+        <input autofocus id="name" v-model="permuteData" type="text">
         <label for="name"></label>
         <div class="bar"></div>
       </div>
+      <div class="btn-group">
         <button class="generate-btn" @click="permuteGenerator">GENERATE</button>
+        <!-- <button class="generate-btn" @click="runPermuted">RUN</button> -->
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import Header from "../components/Header";
+import Indicator from "../components/indicator";
 import { FETCH_LISTDATA } from "@/store/actions.type";
 import { mapGetters } from 'vuex'
 import permute from '../scripts/steinhaus-johnson-trotter'
+// import { setInterval } from 'timers';
 
 export default {
   name: 'Home',
   data(){
     return {
-      hometitle: "Karnpapon Vue's Boiler Plate",
       permuteData: "",
-      permuted: ""
+      permuted: "",
+      cursor: 0,
+      output: "",
+      cursorIndicator: "",
+      rowCount: -1,
+      render: "",
+      target: ""
     }
   },
   mounted() {
     // this.$store.dispatch(FETCH_LISTDATA);
   },
   components: {
+    Indicator
   },
   props: {
     msg: String
   },
   computed: {
-    ...mapGetters(['getListData', 'isLoading'])
+    // ...mapGetters(['getListData', 'isLoading'])
+    outputData: function(){
+     
+      return this.render
+    }
   },
   methods: {
     getdata(){
@@ -56,18 +74,49 @@ export default {
       var generator = permute(arr);
       var next = arr;
       var result = [];
+      let targetIndex = this.permuteData.length - 1
+      this.target = this.permuteData.charAt(targetIndex)
+      let mc 
+
       while (next !== undefined) {
+        // mc = next.replace(this.target, `<span>${this.target}</span>`)
         result.push(next);
         next = generator();
       }
       return result;
     },
+    runPermuted(){
+     setTimeout( () => { 
+        this.cursor++
+        this.increment()
+       }
+     , 500)
+    },
     permuteGenerator(){
       this.permuted = this.permutations(this.permuteData)  
+      this.increment()
+    },
+    increment(){
+      if(this.cursor % this.permuteData.length == 0){
+        this.cursor = 0
+        this.rowCount++
+      }
+
+
+      this.output = this.permuted[this.rowCount].substr(0, this.cursor) + 
+        `<span id="cursor">` + 
+        this.permuted[this.rowCount].substr(this.cursor, 1) + 
+        "</span>" + 
+        this.permuted[this.rowCount].substr(this.cursor+1)
+
+      this.render = this.permuted.slice(0)
+      this.render[this.rowCount] = this.output
+      let cur = document.getElementById('cursor')
+      console.log("cur", cur)
+      // this.cursorIndicator = indicator.innerText
+      
+      this.runPermuted()
     }
-  },
-  mounted(){
-    this.permuted  = this.permutations(this.permuteData)
   }
 }
 </script>
@@ -75,9 +124,6 @@ export default {
 <style lang="scss" scoped>
 @import '../assets/sass/_base.scss';
 
-  *{
-    font-family: 'Kanit', sans-serif;
-  }
   .home{
     width: 100%;
     height: 100%;
@@ -110,6 +156,8 @@ export default {
   .grid{
     width: 100%;
     column-count: 8;
+    height: 410px;
+    box-sizing: content-box;
     /* grid-template-columns: repeat(2,1fr); */
     /* grid-gap: 1rem; */
   }
@@ -117,6 +165,35 @@ export default {
   .grid p{
     font-size: 18px; 
    
+  }
+
+  .tag-list{
+    div{
+      letter-spacing: 4px;
+    }
+  }
+
+  .tag-list{
+    /deep/ span{
+      color: rgba(white, 1);
+      /* border-bottom: 2px solid; */
+      /* &:after {
+        content: '';
+        position: absolute;
+        width: 10px;
+        height: 2px;
+        background: rgba(white, 1);
+        transform: translateX(-100%);
+        margin-top: 3px;
+      } */
+    } 
+   
+  }
+
+  .btn-group{
+    display: flex;
+    justify-content: space-between;
+    width: 120px;
   }
 
   .generate-btn{
@@ -140,6 +217,7 @@ export default {
     margin: auto;
     top: 0; bottom: 0;
     left: 0; right: 0; 
+    transition: 200ms;
   }
 
   .group {
