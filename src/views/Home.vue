@@ -34,6 +34,8 @@ import Indicator from "../components/indicator";
 import { FETCH_LISTDATA } from "@/store/actions.type";
 import { mapGetters } from 'vuex'
 import permute from '../scripts/steinhaus-johnson-trotter'
+import Tone from 'tone'
+// import Gibber from '../scripts/gibber.audio.lib'
 // import { setInterval } from 'timers';
 
 export default {
@@ -47,11 +49,40 @@ export default {
       cursorIndicator: "",
       rowCount: -1,
       render: "",
-      target: ""
+      target: "",
+      targetChar: "",
+      synthA: "",
+      synthB: ""
     }
   },
   mounted() {
-    // this.$store.dispatch(FETCH_LISTDATA);
+    this.synthA = new Tone.Synth({
+      oscillator: {
+        type: 'fmsquare',
+        modulationType: 'sawtooth',
+        modulationIndex: 3,
+        harmonicity: 3.4
+      },
+      envelope: {
+        attack: 0.001,
+        decay: 0.1,
+        sustain: 0.1,
+        release: 0.1
+      }
+    }).toMaster()
+
+
+    this.synthB = new Tone.Synth({
+      oscillator: {
+        type: 'triangle8'
+      },
+      envelope: {
+        attack: 0.01,
+        decay: 1,
+        sustain: 0.4,
+        release: 0.6
+      }
+    }).toMaster()
   },
   components: {
     Indicator
@@ -62,8 +93,28 @@ export default {
   computed: {
     // ...mapGetters(['getListData', 'isLoading'])
     outputData: function(){
-     
       return this.render
+    }
+  },
+  watch: {
+    targetChar: function(){
+     switch( this.targetChar ) {
+       case 'ต':
+          this.synthA.triggerAttackRelease("C4", "8n");
+       break;
+       case 'ก':
+          this.synthB.triggerAttackRelease("F4", "8n");
+       break;
+       case 'ค':
+          this.synthB.triggerAttackRelease("A4", "8n");
+       break;
+       case 'ว':
+          this.synthA.triggerAttackRelease("G3", "8n");
+       break;
+       case 'ย':
+          this.synthB.triggerAttackRelease("B4", "8n");
+       break;
+     }
     }
   },
   methods: {
@@ -90,7 +141,7 @@ export default {
         this.cursor++
         this.increment()
        }
-     , 500)
+     , 250)
     },
     permuteGenerator(){
       this.permuted = this.permutations(this.permuteData)  
@@ -101,22 +152,23 @@ export default {
         this.cursor = 0
         this.rowCount++
       }
+      
+      let offset = 0
+      this.targetChar = this.permuted[this.rowCount].substr(this.cursor + offset, 1)   
 
-
-      this.output = this.permuted[this.rowCount].substr(0, this.cursor) + 
-        `<span id="cursor">` + 
-        this.permuted[this.rowCount].substr(this.cursor, 1) + 
-        "</span>" + 
-        this.permuted[this.rowCount].substr(this.cursor+1)
+      this.output = this.permuted[this.rowCount].substr(0, this.cursor + offset) + 
+        `<span>` + this.targetChar + "</span>" + 
+        this.permuted[this.rowCount].substr(this.cursor+1 + offset)
 
       this.render = this.permuted.slice(0)
       this.render[this.rowCount] = this.output
-      let cur = document.getElementById('cursor')
-      console.log("cur", cur)
-      // this.cursorIndicator = indicator.innerText
       
       this.runPermuted()
-    }
+    },
+    // play: function() {
+    //   Gibber.scale.root.seq( ['c4','eb4'], 2)
+    //   c = Mono('easyfx').note.seq( Rndi(0,12), [1/4,1/8,1/2,1,2].rnd( 1/8,4 ) )
+    // }
   }
 }
 </script>
@@ -175,6 +227,7 @@ export default {
 
   .tag-list{
     /deep/ span{
+      transition: 200ms;
       color: rgba(white, 1);
       /* border-bottom: 2px solid; */
       /* &:after {
