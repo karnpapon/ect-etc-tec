@@ -6,30 +6,44 @@
     <div class="header-total-patterns">
       total: <b>{{ this.permuted.length }}</b> patterns.
     </div>
-    <div class="display-container">
-     <div class="grid canvas-wrapper">
-     <div  class="tag-list">
-        <div
-          id="text-bg"
-          v-for="(data, index) of outputDataBG"
-          :key="index"
-          v-html="data"
-        >
-        </div>
-      </div> 
-    </div>
-    <div class="grid render-text">
-      <div  class="tag-list">
-        <div
-          v-for="(data, index) of outputData"
-          :key="index"
-          v-html="data"
-        >
+    <div 
+      class="display-container"
+      v-bind:class="{ show: isShowing }" 
+    >
+      <div class="grid canvas-wrapper">
+        <div  class="tag-list">
+          <div
+            id="text-bg"
+            v-for="(data, index) of outputDataBG"
+            :key="index"
+            v-html="data"
+            v-bind:class="{ active: rowCount == index && isSelected }"
+            @click="toggleSelect( data, index )"
+          >
+          </div>
+        </div> 
+      </div>
+      <div class="grid render-text">
+        <div  class="tag-list">
+          <div
+            v-for="(data, index) of outputData"
+            :key="index"
+            v-html="data"
+          >
+          </div>
         </div>
       </div>
     </div>
+    <div 
+      v-if="this.permuteData.length > 5 && isShowing"
+      class="scroll"
+    >
+      ⟷
     </div>
-    <div class="display-char">
+    <div 
+      class="display-char"
+      v-bind:class="{ showLetter: isShowing }"  
+    >
       <div class="char">{{ this.targetChar }}</div>
     </div>
    
@@ -40,7 +54,13 @@
         <div class="bar"></div>
       </div>
       <div class="btn-group">
-        <button class="generate-btn" @click="permuteGenerator">GENERATE</button>
+        <button class="generate-btn" @click="generate">GENERATE</button>
+        <button v-if="!isPlay"
+          class="generate-btn" @click="triggerVoice">►
+        </button>
+        <button v-else
+          class="generate-btn" @click="stop">▨
+        </button>
       </div>
     </div>
     <p class="credits"> by Karnpapon Boonput 2019 all rights reversed.</p>
@@ -50,7 +70,7 @@
 <script>
 import Indicator from "../components/indicator";
 import Header from "../components/Header";
-import { FETCH_LISTDATA } from "@/store/actions.type";
+// import { FETCH_LISTDATA } from "@/store/actions.type";
 import { mapGetters } from 'vuex'
 import permute from '../scripts/steinhaus-johnson-trotter'
 import Tone from 'tone'
@@ -61,6 +81,7 @@ export default {
   name: 'Home',
   data(){
     return {
+      timer: "",
       permuteData: "",
       permuted: "",
       cursor: 0,
@@ -72,10 +93,23 @@ export default {
       targetChar: "",
       synthA: "",
       synthB: "",
-      permutedTextBg: ""
+      permutedTextBg: "",
+      isLooped: false,
+      isShowing: false,
+      isSelected: false,
+      isPlay: false,
+      triggerType: 'voice',
+      player: "",
+      buffer: ""
     }
   },
   mounted() {
+    this.buffer = new Tone.Buffer();
+   
+    this.buffer.load("src/media/audios/t.mp3")
+    this.player = new Tone.Player(this.buffer);
+    this.player.autostart = true
+
     var reverb = new Tone.JCReverb(0.7).connect(Tone.Master);
     this.synthA = new Tone.Synth({
       oscillator: {
@@ -111,7 +145,6 @@ export default {
     msg: String
   },
   computed: {
-    // ...mapGetters(['getListData', 'isLoading'])
     outputData: function(){
       return this.render
     },
@@ -123,10 +156,12 @@ export default {
    
   },
   methods: {
-    getdata(){
-      console.log("getListData", this.getListData)
+    toggleSelect( selected, index ){
+      this.rowCount = index
+      this.isLooped = !this.isLooped
+      this.isSelected = !this.isSelected
     },
-     trigger(){
+     triggerSynth(){
      switch( this.targetChar ) {
        case 'ต':
           this.synthA.envelope.attack = 0.05
@@ -155,6 +190,30 @@ export default {
        break;
      }
     },
+     triggerVoice(){
+    //  switch( this.targetChar ) {
+    //    case 'ต':
+    //       this.player.toMaster();
+    //       this.player.autostart = true;
+    //    break;
+    //    case 'ก':
+    //       // this.player = new Tone.Player("@/media/voices/k.m4a").toMaster();
+    //    break;
+    //    case 'ค':
+    //       // this.player = new Tone.Player("@/media/voices/kh.m4a").toMaster();
+    //    break;
+    //    case 'ว':
+    //       // this.player = new Tone.Player("@/media/voices/w.m4a").toMaster();
+    //    break;
+    //    case 'ญ':
+    //       // this.player = new Tone.Player("@/media/voices/y.m4a").toMaster();
+    //    break;
+    //  }
+
+      this.player.toMaster();
+      this.player.start();
+
+    },
     permutations(arr, highlight = false) {
       var generator = permute(arr);
       var next = arr;
@@ -174,36 +233,50 @@ export default {
       }
       return result;
     },
-    runPermuted(){
-     setTimeout( () => { 
+    generate(){
+      this.isShowing = true
+      this.permuted = this.permutations(this.permuteData)  
+      this.permutedTextBg = this.permutations(this.permuteData, true)  
+      this.display()
+    },
+    display(){
+      if(this.cursor % this.permuteData.length == 0){
+        this.cursor = 0
+        this.isLooped? this.rowCount:this.rowCount++
+      }
+      
+      let offset = 0
+      let targetRow = this.permuted[this.rowCount]
+      this.targetChar = targetRow.substr(this.cursor + offset, 1)   
+
+      this.output = targetRow.substr(0, this.cursor + offset) + 
+        `<span>` + this.targetChar + "</span>" + 
+        targetRow.substr(this.cursor+1 + offset)
+
+      this.render = this.permuted.slice(0)
+      this.render[this.rowCount] = this.output
+    },
+    increment(){
+      this.isPlay = true
+      this.display()
+      if( this.triggerType == 'synth' ){
+        this.triggerSynth() 
+      } else {
+        this.triggerVoice()
+      }
+      this.run()
+    },
+    run(){
+     this.timer = setTimeout( () => { 
         this.cursor++
         this.increment()
        }
      , 250)
     },
-    permuteGenerator(){
-      this.permuted = this.permutations(this.permuteData)  
-      this.permutedTextBg = this.permutations(this.permuteData, true)  
-      this.increment()
-    },
-    increment(){
-      if(this.cursor % this.permuteData.length == 0){
-        this.cursor = 0
-        this.rowCount++
-      }
-      
-      let offset = 0
-      this.targetChar = this.permuted[this.rowCount].substr(this.cursor + offset, 1)   
-
-      this.output = this.permuted[this.rowCount].substr(0, this.cursor + offset) + 
-        `<span>` + this.targetChar + "</span>" + 
-        this.permuted[this.rowCount].substr(this.cursor+1 + offset)
-
-      this.render = this.permuted.slice(0)
-      this.render[this.rowCount] = this.output
-      this.trigger() 
-      this.runPermuted()
-    },
+    stop(){
+      this.isPlay = false
+      clearTimeout(this.timer)
+    }
   }
 }
 </script>
@@ -249,6 +322,30 @@ export default {
   }
   .tag-list li{ text-align: left}
 
+  .scroll{
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    margin-bottom: 160px;
+    margin-right: 50px;
+    font-size: 14px;
+    padding: 0px 10px;
+    border: 1px solid black;
+    /* animation: scaling 0.5s alternate infinite ease-in; */
+  }
+
+  /* .scroll-animate {
+    width: 100px;
+    height: 100px;
+    background: #000;
+    animation: scaling 1.5s alternate infinite ease-in;
+  } */
+
+  @keyframes scaling {
+    0%   {transform: scale(.9);}
+    100% {transform: scale(1);}
+  }
+
   .grid{
     width: 100%;
     column-count: 8;
@@ -263,6 +360,7 @@ export default {
   .render-text{
     position: relative;
     z-index: 5;
+    pointer-events: none;
   }
 
   .grid p{
@@ -273,7 +371,16 @@ export default {
   .tag-list{
     div{
       letter-spacing: 4px;
+      transition: 150ms;
+      &:hover{
+        cursor: pointer;
+        background: white;
+      }
     }
+  }
+
+  .active{
+    background: white;
   }
 
   .canvas-wrapper{
@@ -286,29 +393,43 @@ export default {
 
   #text-bg{
     color: $main-color;
-    box-shadow: inset 0px -0.5px black
+    box-shadow: inset 0px -0.5px black;
   }
 
   .display-container{
     width: 100%;
     position: inherit;
+    padding-bottom: 15px;
+    overflow: auto;
+    opacity: 0;
+    transition: 400ms;
   }
 
   .display-char{
     font-size: 20rem;
     position: absolute;
-    opacity: .5;
-    transition: 200ms;
-    z-index: 1;
+    opacity: 0;
+    transition: 600ms;
+    /* z-index: 1; */
+    pointer-events: none;
     .char{
+      color: rgb(98, 0, 255);
     }
+  }
+
+  .show{
+    opacity: 1;
+  }
+
+  .showLetter{
+    opacity: 0.5; 
   }
 
   .tag-list{
     /deep/ span{
       transition: 200ms;
-      color: rgba(white, 1);
-      border-bottom: 2px solid white;
+      color: rgba(rgb(111, 0, 255), 1);
+      border-bottom: 2px solid rgb(111, 0, 255);
     } 
     /deep/ span#text-bg-render{
       transition: 200ms;
@@ -317,6 +438,10 @@ export default {
       font-weight: bolder;
     } 
    
+  }
+
+  .matched{
+    color: $main-color;
   }
 
   .credits{
@@ -330,16 +455,16 @@ export default {
   .btn-group{
     display: flex;
     justify-content: flex-end;
-    width: 120px;
-    padding-top: 30px;
+    padding-top: 50px;
   }
 
   .generate-btn{
     border: none;
     outline: none;
     cursor: pointer;
-    padding: 10px;
+    padding: 5px 20px;
     background:rgba(white, 1);
+    margin-left: 10px;
     transition: 100ms;
     &:hover{
       background: rgba(white, .5); 

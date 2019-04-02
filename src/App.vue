@@ -29,6 +29,10 @@ export default {
     color: #2c3e50;
   }
 
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
   .container{
     height: 100vh;
     align-items: center;

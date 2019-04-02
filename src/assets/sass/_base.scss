@@ -1,5 +1,14 @@
+@function set-color($class) {
+    @if ($class == red) {
+      @return $main-color ;
+    } @else {
+      @return $secondary-color;
+    }
+}
+
+
 $main-color: #F44336;
 $secondary-color: white;
 $main-color: #00f3c6;
 $max-val: rgb(68, 255, 51);
-$width: 550px; // Change Me
+$width: 550px; 
