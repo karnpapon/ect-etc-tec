@@ -3,6 +3,31 @@
     <div class="header-title">
       <img src="https://img.icons8.com/material-outlined/24/000000/circled-menu.png">
     </div>
+    <Slide :crossIcon="false">
+      <a href="#">
+        <span>
+          README.md
+         <br/>
+          ------------------
+          <br/> 
+          implementing 
+          SJT ( Steinhaus-Johnson-Trotter's) algorithm 
+          for letters as a musical pattern.
+          <br/>
+          -
+          <br/>
+          since letters contain interesting properties,
+          Phonetic of each individual Thai Consonants 
+          is using to determines "envelope" particular sound in this project
+          eg. letter "p" has percussive sound than letter "y"
+          and so on.
+          <br/>
+          -
+          <br/>
+          using Tone.js as audio engine.
+        </span>
+      </a>
+    </Slide>
     <div class="header-total-patterns">
       total: <b>{{ this.permuted.length }}</b> patterns.
     </div>
@@ -56,26 +81,31 @@
       <div class="btn-group">
         <button class="generate-btn" @click="generate">GENERATE</button>
         <button v-if="!isPlay"
-          class="generate-btn" @click="triggerVoice">►
+          class="generate-btn" @click="increment">►
         </button>
         <button v-else
           class="generate-btn" @click="stop">▨
         </button>
       </div>
     </div>
+    <div class="credits credit-logo">
+      <a href="https://github.com/karnpapon/ECT-ETC-TEC" target="_blank">
+        <img src="../assets/icon/GitHub-sm.svg" width="20px" height="20px">
+      </a>
+      <a href="https://creativecommons.org/" target="_blank">
+        <img src="../assets/icon/cc-sm.svg" width="20px" height="20px">
+      </a>
+    </div>
     <p class="credits"> by Karnpapon Boonput 2019 all rights reversed.</p>
   </div>
 </template>
 
 <script>
-import Indicator from "../components/indicator";
-import Header from "../components/Header";
-// import { FETCH_LISTDATA } from "@/store/actions.type";
 import { mapGetters } from 'vuex'
 import permute from '../scripts/steinhaus-johnson-trotter'
 import Tone from 'tone'
-// import Gibber from '../scripts/gibber.audio.lib'
-// import { setInterval } from 'timers';
+import { getRandomInt, getEnvelope } from '../helpers';
+import { Slide } from 'vue-burger-menu'  
 
 export default {
   name: 'Home',
@@ -86,30 +116,25 @@ export default {
       permuted: "",
       cursor: 0,
       output: "",
-      cursorIndicator: "",
       rowCount: -1,
       render: "",
       target: "",
       targetChar: "",
       synthA: "",
       synthB: "",
+      synthC: "",
       permutedTextBg: "",
       isLooped: false,
       isShowing: false,
       isSelected: false,
       isPlay: false,
-      triggerType: 'voice',
+      triggerType: 'synth',
       player: "",
       buffer: ""
     }
   },
   mounted() {
-    this.buffer = new Tone.Buffer();
-   
-    this.buffer.load("src/media/audios/t.mp3")
-    this.player = new Tone.Player(this.buffer);
-    this.player.autostart = true
-
+    var vol = new Tone.Volume(-20);
     var reverb = new Tone.JCReverb(0.7).connect(Tone.Master);
     this.synthA = new Tone.Synth({
       oscillator: {
@@ -124,7 +149,7 @@ export default {
         sustain: 0.1,
         release: 0.1
       }
-    }).chain(reverb)
+    }).chain(vol, reverb)
 
     this.synthB = new Tone.Synth({
       oscillator: {
@@ -136,10 +161,25 @@ export default {
         sustain: 0.4,
         release: 0.6
       }
-    }).chain(reverb)
+    }).chain(vol, reverb)
+
+    this.synthC = new Tone.MembraneSynth({
+      pitchDecay  : 0.05 ,
+      octaves  : 10 ,
+      oscillator  : {
+      type  : 'sine'
+      }  ,
+      envelope  : {
+      attack  : 0.001 ,
+      decay  : 0.4 ,
+      sustain  : 0.01 ,
+      release  : 1,
+      attackCurve  : 'exponential'
+}
+    }).chain(vol, reverb)
   },
   components: {
-    Indicator
+    Slide
   },
   props: {
     msg: String
@@ -156,63 +196,108 @@ export default {
    
   },
   methods: {
+    getRandomInt,
+    getEnvelope,
     toggleSelect( selected, index ){
       this.rowCount = index
       this.isLooped = !this.isLooped
       this.isSelected = !this.isSelected
     },
      triggerSynth(){
-     switch( this.targetChar ) {
-       case 'ต':
-          this.synthA.envelope.attack = 0.05
-          this.synthA.envelope.release = 0.2
-          this.synthA.triggerAttackRelease("D4", "8n");
+
+      //  find phonetic before switch.
+      let envType = this.getEnvelope( this.targetChar )
+
+      console.log("envType", envType)
+
+     switch( envType ) {
+       case 'k':
+          this.synthC.envelope.attack = 0.05
+          this.synthC.envelope.release = 0.2
+          this.synthC.triggerAttackRelease("D2", "8n");
        break;
-       case 'ก':
-          this.synthB.envelope.attack = 0.01
-          this.synthB.envelope.release = 0.6
-          this.synthB.triggerAttackRelease("C#4", "8n");
+       case 'ng':
+          this.synthC.envelope.attack = 0.1
+          this.synthC.envelope.release = 0.5
+          this.synthC.octaves = this.getRandomInt(1,200)
+          this.synthC.triggerAttackRelease("C#3", "8n");
        break;
-       case 'ค':
+       case 'j':
           this.synthB.envelope.attack = 0.05
           this.synthB.envelope.release = 0.6
           this.synthB.triggerAttackRelease("F#4", "8n");
        break;
-       case 'ว':
-          this.synthA.envelope.attack = 1
-          this.synthA.envelope.release = 1
+       case 'sh':
+          this.synthA.envelope.attack = 0.7
+          this.synthA.envelope.release = 0.5
           this.synthA.triggerAttackRelease("E3", "8n");
        break;
-       case 'ญ':
-          this.synthB.envelope.attack = 1
-          this.synthB.envelope.release = 1
-          this.synthB.triggerAttackRelease("B4", "8n");
+       case 's':
+          this.synthB.envelope.attack = 0.7
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("B2", "8n");
+       break;
+       case 'y':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = this.getRandomInt(0.01, 0.5)
+          this.synthB.triggerAttackRelease("F#3", "8n");
+       break;
+       case 'd':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("B2", "8n");
+       break;
+       case 't':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("B3", "8n");
+       break;
+       case 'th':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = this.getRandomInt(0.01, 0.5)
+          this.synthB.triggerAttackRelease("C2", "8n");
+       break;
+       case 'n':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("D#3", "8n");
+       break;
+       case 'b':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("B2", "8n");
+       break;
+       case 'f':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("B3", "8n");
+       break;
+       case 'm':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("G#3", "8n");
+       break;
+       case 'l':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = this.getRandomInt(0.01, 0.3)
+          this.synthB.triggerAttackRelease("B3", "8n");
+       break;
+       case 'w':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("A4", "8n");
+       break;
+       case 'h':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("A#3", "8n");
+       break;
+       case 'a':
+          this.synthB.envelope.attack = 0.3
+          this.synthB.envelope.release = 0.5
+          this.synthB.triggerAttackRelease("E4", "8n");
        break;
      }
-    },
-     triggerVoice(){
-    //  switch( this.targetChar ) {
-    //    case 'ต':
-    //       this.player.toMaster();
-    //       this.player.autostart = true;
-    //    break;
-    //    case 'ก':
-    //       // this.player = new Tone.Player("@/media/voices/k.m4a").toMaster();
-    //    break;
-    //    case 'ค':
-    //       // this.player = new Tone.Player("@/media/voices/kh.m4a").toMaster();
-    //    break;
-    //    case 'ว':
-    //       // this.player = new Tone.Player("@/media/voices/w.m4a").toMaster();
-    //    break;
-    //    case 'ญ':
-    //       // this.player = new Tone.Player("@/media/voices/y.m4a").toMaster();
-    //    break;
-    //  }
-
-      this.player.toMaster();
-      this.player.start();
-
     },
     permutations(arr, highlight = false) {
       var generator = permute(arr);
@@ -271,7 +356,7 @@ export default {
         this.cursor++
         this.increment()
        }
-     , 250)
+     , 200)
     },
     stop(){
       this.isPlay = false
@@ -450,6 +535,18 @@ export default {
     font-size: 12px;
     margin-bottom: 20px;
     bottom: 0px;
+  }
+
+  .credit-logo{
+    right: 0;
+    width: 60px;
+    display: flex;
+    justify-content: space-around;
+    margin-right: 30px;
+    &:hover{
+      fill: #ace63c;
+      cursor: pointer;
+    }
   }
 
   .btn-group{
