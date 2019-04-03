@@ -208,8 +208,6 @@ export default {
       //  find phonetic before switch.
       let envType = this.getEnvelope( this.targetChar )
 
-      console.log("envType", envType)
-
      switch( envType ) {
        case 'k':
           this.synthC.envelope.attack = 0.05
