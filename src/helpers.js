@@ -4,7 +4,73 @@ export const getRandomInt = function(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export  const getEnvelope = function(letter){
+export  const getEnvelopeEN = function(letter){
+  let type
+  switch( letter ){
+    case ( 'a'):
+    case ( 'i'):
+    case ( 'e'):
+    case ( 'l'):
+      type = 'a'
+      break;
+    case ( 'd'):
+      type = 'd'
+      break;
+    case ( 'r'):
+      type = 'r'
+      break;
+    case ( 'b'):
+      type = 'b'
+      break;
+    case ( 'p'):
+      type = 'p'
+      break;
+    case ( 'g'):
+    case ( 'j'):
+      type = 'j'
+      break;
+    case ( 'c'):
+    case ( 's'):
+    case ( 'z'):
+      type = 's'
+      break;
+    case ( 'x'):
+      type = 'x'
+      break;
+    case ( 'm'):
+    case ( 'n'):
+      type = 'm'
+      break;
+    case ( 'o'):
+    case ( 'w'):
+    case ( 'u'):
+      type = 'w'
+      break;
+    case ( 'f'):
+      type = 'f'
+      break;
+    case ( 'v'):
+      type = 'v'
+      break;
+    case ( 'h'):
+      type = 'h'
+      break;
+    case ( 't'):
+      type = 't'
+      break;
+    case ( 'y'):
+      type = 'y'
+      break;
+    case ( 'q'):
+    case ( 'k'):
+      type = 'k'
+      break;
+    
+  }
+  return type
+}
+
+export  const getEnvelopeTH = function(letter){
   let type
   switch( letter ){
     case ( 'ก'):

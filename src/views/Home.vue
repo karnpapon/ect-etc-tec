@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div class="header-title">
-      <img src="https://img.icons8.com/material-outlined/24/000000/circled-menu.png">
+      <img src="../assets/icon/ect-etc-tec-logo.svg" width="40px" height="40px">
     </div>
     <Slide :crossIcon="false">
       <a href="#">
@@ -74,14 +74,21 @@
    
     <div class="centered">
       <div class="group">
-        <input autofocus id="name" v-model="permuteData" type="text">
+        <input autofocus id="name" v-model="permuteData" maxlength="6" type="text">
         <label for="name"></label>
         <div class="bar"></div>
       </div>
       <div class="btn-group">
-        <button class="generate-btn" @click="generate">GENERATE</button>
+        <button 
+          class="disabled-input" 
+          :class="{'generate-btn':permuteData}"
+          @click="generate">
+          GENERATE
+        </button>
         <button v-if="!isPlay"
-          class="generate-btn" @click="increment">►
+          class="disabled-input" 
+          :class="{'generate-btn':permuteData}" 
+          @click="increment">►
         </button>
         <button v-else
           class="generate-btn" @click="stop">▨
@@ -96,7 +103,7 @@
         <img src="../assets/icon/cc-sm.svg" width="20px" height="20px">
       </a>
     </div>
-    <p class="credits"> by Karnpapon Boonput 2019 all rights reversed.</p>
+    <p class="credits"> by Karnpapon Boonput {{ getCurrentYear() }} all rights reversed.</p>
   </div>
 </template>
 
@@ -104,7 +111,7 @@
 import { mapGetters } from 'vuex'
 import permute from '../scripts/steinhaus-johnson-trotter'
 import Tone from 'tone'
-import { getRandomInt, getEnvelope } from '../helpers';
+import { getRandomInt, getEnvelopeTH, getEnvelopeEN } from '../helpers';
 import { Slide } from 'vue-burger-menu'  
 
 export default {
@@ -130,8 +137,16 @@ export default {
       isPlay: false,
       triggerType: 'synth',
       player: "",
-      buffer: ""
+      buffer: "",
+      drum1: null,
+      drum2: null,
+      drum3: null,
+      drum4: null,
+      drum5: null,
     }
+  },
+  created(){
+   
   },
   mounted() {
     var vol = new Tone.Volume(-20);
@@ -163,6 +178,32 @@ export default {
       }
     }).chain(vol, reverb)
 
+    this.drum2 = new Tone.NoiseSynth()
+    this.drum2.set("noise.type", "white");
+    this.drum2.set("envelope.decay", ".4");
+    this.drum2.set("envelope.attack", "0.005");
+    this.drum2.set("envelope.sustain", "0");
+    this.drum2.volume.value = -18
+    this.drum2.toMaster()
+
+    this.drum3 = new Tone.NoiseSynth().toMaster();
+    this.drum3.set("noise.type", "pink");
+    this.drum3.set("envelope.decay", "1");
+    this.drum3.set("envelope.attack", "0.005");
+    this.drum3.set("envelope.sustain", "0");
+    this.drum3.volume.value = -18
+    this.drum3.toMaster()
+
+    this.drum4 = new Tone.MetalSynth();
+    this.drum4.volume.value = -36
+    this.drum4.toMaster() 
+
+    this.drum5 = new Tone.MembraneSynth().toMaster()
+    this.drum5.set("octaves", "10");
+    this.drum5.set("pitchDecay", "0.05");
+    this.drum5.set("envelope.decay", "0.2");
+    this.drum5.set("envelope.attack", "0.001");
+
     this.synthC = new Tone.MembraneSynth({
       pitchDecay  : 0.05 ,
       octaves  : 10 ,
@@ -170,13 +211,13 @@ export default {
       type  : 'sine'
       }  ,
       envelope  : {
-      attack  : 0.001 ,
-      decay  : 0.4 ,
-      sustain  : 0.01 ,
-      release  : 1,
-      attackCurve  : 'exponential'
-}
-    }).chain(vol, reverb)
+        attack  : 0.001 ,
+        decay  : 0.4 ,
+        sustain  : 0.01 ,
+        release  : 1,
+        attackCurve  : 'exponential'
+      }
+    }).toMaster()
   },
   components: {
     Slide
@@ -197,18 +238,24 @@ export default {
   },
   methods: {
     getRandomInt,
-    getEnvelope,
+    getCurrentYear(){
+      let year = new Date(); 
+      return year.getFullYear()
+    },
     toggleSelect( selected, index ){
       this.rowCount = index
       this.isLooped = !this.isLooped
       this.isSelected = !this.isSelected
     },
      triggerSynth(){
-
       //  find phonetic before switch.
-      let envType = this.getEnvelope( this.targetChar )
-
-     switch( envType ) {
+      var envType = getEnvelopeEN( this.targetChar )
+      this.playSynthEn(envType)
+      // let envType = getEnvelopeTH( this.targetChar )
+      // this.playSynthTh(envType)
+    },
+    playSynthTh(envType){
+      switch( envType ) {
        case 'k':
           this.synthC.envelope.attack = 0.05
           this.synthC.envelope.release = 0.2
@@ -297,6 +344,94 @@ export default {
        break;
      }
     },
+    playSynthEn(envType){
+       switch( envType ) {
+       case 'k': //
+          this.drum2.envelope.attack = 0.05
+          this.drum2.envelope.release = 0.2
+          this.drum2.triggerAttack();
+       break;
+       case 'v': //
+          this.drum2.envelope.attack = 0.05
+          this.drum2.envelope.release = 0.6
+          this.drum2.triggerAttack();
+       break;
+       case 'f': //
+          this.drum4.envelope.attack = 0.05
+          this.drum4.envelope.release = 0.2
+          this.drum4.triggerAttack();
+       break;
+       case 'j': //
+          // this.synthB.envelope.attack = 0.05
+          // this.synthB.envelope.release = 0.6
+          // this.synthB.triggerAttackRelease("F#4", "8n");
+          this.drum2.triggerAttack();
+       break;
+       case 's': //
+          // this.synthB.envelope.attack = 0.3
+          // this.synthB.envelope.release = 0.7
+          // this.synthB.triggerAttackRelease("B2", "8n");
+          this.drum2.triggerAttack();
+       break;
+       case 'y': //
+          // this.synthB.envelope.attack = 0.03
+          // this.synthB.envelope.release = this.getRandomInt(0.03, 0.2)
+          // this.synthB.triggerAttackRelease("F#3", "8n");
+          this.drum4.triggerAttack();
+       break;
+       case 'd': //
+          this.drum3.envelope.attack = 0.45
+          this.drum3.envelope.release = 0.2
+          // this.synthC.triggerAttackRelease("B2", "8n");
+          this.drum3.triggerAttack();
+       break;
+       case 't': //
+          this.drum4.envelope.attack = 0.03
+          this.drum4.envelope.release = 0.5
+          this.drum4.triggerAttack();
+       break;
+       case 'r': //
+          // this.synthB.envelope.attack = 0.3
+          // this.synthB.envelope.release = 0.5
+          // this.synthB.triggerAttackRelease("D#3", "8n");
+          this.drum4.triggerAttack();
+       break;
+       case 'b': //
+          // this.drum3.envelope.attack = 0.03
+          // this.drum3.envelope.release = 0.5
+          this.drum5.triggerAttack();
+       break;
+       case 'p': //
+          // this.drum3.envelope.attack = 0.01
+          // this.drum3.envelope.release = 0.8
+          this.drum5.triggerAttack();
+       break;
+       case 'm': //
+          this.drum4.envelope.attack = 0.3
+          this.drum4.envelope.release = 0.5
+          this.drum4.triggerAttack()
+       break;
+       case 'x': //
+          this.drum4.envelope.attack = 0.1
+          this.drum4.envelope.release = 0.2
+          this.drum4.triggerAttack();
+       break;
+       case 'w': //
+          this.drum2.envelope.attack = 0.3
+          this.drum2.envelope.release = 0.5
+          this.drum2.triggerAttack();
+       break;
+       case 'h': //
+          // this.synthC.envelope.decay = 1
+          this.drum3.triggerAttack();
+       break;
+       case 'a': //
+          // this.drum5.set("envelope.attack", "0.03")
+          // this.drum5.envelope.release = 0.5
+          this.synthC.triggerAttack();
+       break;
+       }
+    },
     permutations(arr, highlight = false) {
       var generator = permute(arr);
       var next = arr;
@@ -317,6 +452,8 @@ export default {
       return result;
     },
     generate(){
+      // handle Google's policy "AudioContext is not allowed to start"
+      Tone.context.resume();
       this.isShowing = true
       this.permuted = this.permutations(this.permuteData)  
       this.permutedTextBg = this.permutations(this.permuteData, true)  
@@ -553,6 +690,15 @@ export default {
     padding-top: 50px;
   }
 
+  .disabled-input{
+    pointer-events: none;
+    border: none;
+    outline: none;
+    padding: 5px 20px;
+    margin-left: 10px;
+    background:rgba(rgb(180, 180, 180), 1); 
+  }
+
   .generate-btn{
     border: none;
     outline: none;
@@ -561,6 +707,7 @@ export default {
     background:rgba(white, 1);
     margin-left: 10px;
     transition: 100ms;
+    pointer-events: unset;
     &:hover{
       background: rgba(white, .5); 
     }
