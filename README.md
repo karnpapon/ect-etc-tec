@@ -9,9 +9,7 @@ one of the property is "Phonetic" in short, Phonetic of each individual letter d
 eg. letter "p" has percussive sound, then attack = 0.01 ( in terms of tone.js )
 letter "y" has a smooth attack, so attack = 0.5 and so on.
  
- ┌──────┐
- │ 👉[Try Here](https://karnpapon.github.io/ect-etc-tec/#/) │
- └──────┘
+## 👉[Try Here](https://karnpapon.github.io/ect-etc-tec/#/)
 
 
 ![Alt text](./src/assets/img/3.png?raw=true "Title")
