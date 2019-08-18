@@ -1,4 +1,4 @@
-// vue.config.js
-module.exports = {
-    publicPath: 'ect-etc-tec'
-    } 
+// // vue.config.js
+// module.exports = {
+//     publicPath: 'ect-etc-tec'
+//     } 

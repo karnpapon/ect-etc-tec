@@ -17,7 +17,7 @@
           -
           <br/>
           since letters contain interesting properties,
-          Phonetic of each individual Thai Consonants 
+          Phonetic of each individual alphabet 
           is using to determines "envelope" particular sound in this project
           eg. letter "p" has percussive sound than letter "y"
           and so on.
